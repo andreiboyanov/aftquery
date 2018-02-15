@@ -1,4 +1,5 @@
 #encoding: utf-8
+import re
 import sys
 import urllib
 import os.path
@@ -45,6 +46,31 @@ def _get_sex_from_image(info_element):
 
 def _extract_value_from_ranking_text(text):
     return text[:text.find(" - ")]
+
+
+def parse_player_ranking_resume(html):
+    soup = bs4(html, "html.parser")
+    current_ranking_element = soup.find_all(text=re.compile('Classement actuel'))[0].strip()
+    current_ranking = current_ranking_element.split(':')[1].strip()
+    future_ranking_element = soup.find_all(text=re.compile('du nouveau classement:'))[0].strip()
+    future_ranking = current_ranking_element.split(':')[1].strip()
+
+    print(future_ranking_element, future_ranking)
+    print(current_ranking_element, current_ranking)
+
+    matches_table = soup.find(id="matchs_table").find_all('tbody')[0]
+    for row in matches_table.find_all('tr'):
+        print(row)
+
+
+def get_matches(player_id, name=None, type='single', year=None):
+    if name is None:
+        player_details = get_player_details(player_id)
+        name = player_details['name']
+    last_name, first_name = name.split()
+    url = 'https://www.classement-tennis.be/matchs/{}_{}_{}.html'.format(player_id, first_name, last_name)
+    html = urllib.urlopen(url).read()
+    parse_player_ranking_resume(html)
 
 
 def parse_player_details(html):
@@ -122,6 +148,7 @@ def get_player_details(player_id):
     url = "http://www.aftnet.be/MyAFT/Players/Detail/{}".format(player_id)
     html = urllib.urlopen(url).read()
     player = parse_player_details(html)
+    return player
 
 
 def search_players(total_records=0, region=1, name=u"",
@@ -204,11 +231,14 @@ def main(argv):
         "--player-id", default=[], nargs="*", action="append",
         help="Get player details by ID. Multiple instances of this argument are accepted.")
     parser.add_argument("--club-id", default="")
+    parser.add_argument('--show-matches', action='store_true', help="Show player's matches")
     arguments = parser.parse_args(argv)
     if arguments.player_id:
         for player_ids in arguments.player_id:
             for player_id in player_ids:
-                get_player_details(player_id)
+                player_details = get_player_details(player_id)
+                if arguments.show_matches:
+                    get_matches(player_id, name=player_details['name'])
     elif arguments.players or arguments.club_id:
         search_players(club_id=arguments.club_id, name=arguments.player_name)
     elif arguments.clubs:
