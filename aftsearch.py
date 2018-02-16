@@ -48,7 +48,7 @@ def _extract_value_from_ranking_text(text):
     return text[:text.find(" - ")]
 
 
-def parse_player_ranking_resume(html):
+def parse_player_ranking_matches(html):
     soup = bs4(html, "html.parser")
     current_ranking_element = soup.find_all(text=re.compile('Classement actuel'))[0].strip()
     current_ranking = current_ranking_element.split(':')[1].strip()
@@ -60,7 +60,19 @@ def parse_player_ranking_resume(html):
 
     matches_table = soup.find(id="matchs_table").find_all('tbody')[0]
     for row in matches_table.find_all('tr'):
-        print(row)
+        cells = row.find_all('td')
+        match = dict(
+            win=cells[0].text == 'V',
+            date=cells[1].text,
+            tournament=cells[2].text,
+            oponent_url=cells[3].a["href"],
+            oponent_name=cells[3].a.text,
+            oponent_ranking=cells[4].text,
+            oponent_new_ranking=cells[5].text,
+            match_score=cells[6].text,
+        )
+        print(match)
+
 
 
 def get_matches(player_id, name=None, type='single', year=None):
@@ -70,7 +82,7 @@ def get_matches(player_id, name=None, type='single', year=None):
     last_name, first_name = name.split()
     url = 'https://www.classement-tennis.be/matchs/{}_{}_{}.html'.format(player_id, first_name, last_name)
     html = urllib.urlopen(url).read()
-    parse_player_ranking_resume(html)
+    parse_player_ranking_matches(html)
 
 
 def parse_player_details(html):
