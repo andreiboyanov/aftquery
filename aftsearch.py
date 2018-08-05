@@ -1,11 +1,9 @@
-#encoding: utf-8
 import re
 import sys
 import urllib
 import os.path
 import urlparse
 import argparse
-from pprint import pprint
 from bs4 import BeautifulSoup as bs4
 
 PLAYER_INFO_LABELS = dict({
@@ -16,7 +14,7 @@ PLAYER_INFO_LABELS = dict({
     u"Valeur double": "double points",
     u"Première affiliation": "first affiliation",
     u"Actif depuis le": "active from",
-    u"Club": "club",
+    u"Club": "club"
 })
 
 players = dict()
@@ -28,6 +26,7 @@ def _get_name_and_id(name_and_id):
     _name = name_and_id[:first_bracket_index-1]
     _id = name_and_id[first_bracket_index+1:-1]
     return _name, _id
+
 
 def _extract_club_id_from_href(href):
     club_detail_url = '/MyAFT/Clubs/Detail/'
@@ -116,7 +115,7 @@ def parse_player_details(html):
     player_details["single ranking"] = _extract_value_from_ranking_text(player_details["single ranking"])
     player_details["double points"] = _extract_value_from_ranking_text(player_details["double points"])
 
-    print(u"".format(player_details["name"]))
+    print(u"{}".format(player_details["name"]))
     print(u"=" * len(player_details["name"]))
     for label, value in player_details.items():
         if label != "image":
