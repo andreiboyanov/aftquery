@@ -1,10 +1,16 @@
+#coding=utf-8
+
 import re
 import sys
 import urllib
 import os.path
 import urlparse
 import argparse
+from pprint import pprint
 from bs4 import BeautifulSoup as bs4
+
+from aftquery.parser.aft import clubs as aft_clubs
+from aftquery.parser.aft.common import _get_name_and_id
 
 PLAYER_INFO_LABELS = dict({
     u"Né le": "birth date",
@@ -19,13 +25,6 @@ PLAYER_INFO_LABELS = dict({
 
 players = dict()
 clubs = dict()
-
-
-def _get_name_and_id(name_and_id):
-    first_bracket_index = name_and_id.find('(')
-    _name = name_and_id[:first_bracket_index-1]
-    _id = name_and_id[first_bracket_index+1:-1]
-    return _name, _id
 
 
 def _extract_club_id_from_href(href):
@@ -71,7 +70,6 @@ def parse_player_ranking_matches(html):
             match_score=cells[6].text,
         )
         print(match)
-
 
 
 def get_matches(player_id, name=None, type='single', year=None):
@@ -143,17 +141,6 @@ def parse_players(html):
     return count
 
 
-def parse_clubs(html):
-    soup = bs4(html)
-    count = 0
-    for club in soup.find_all('dl'):
-        club_name, club_id = _get_name_and_id(club.a.text)
-        new_club = dict(name=club_name, id=club_id)
-        clubs[club_id] = new_club
-        count += 1
-        print("CLUB", new_club)
-    return count
-
 
 def get_player_details(player_id):
     url = "http://www.aftnet.be/MyAFT/Players/Detail/{}".format(player_id)
@@ -200,38 +187,9 @@ def search_players(total_records=0, region=1, name=u"",
 
 
 def search_clubs(region=1):
-    url = "http://www.aftnet.be/MyAFT/Clubs/SearchClubs"
-
-    data = {
-        "City": "",
-        "ClubIdFrom": "",
-        "ClubIdTo": "",
-        "ClubLabels": "",
-        "CourtIndoor": False,
-        "CourtOutdoor": False,
-        "IndoorLighting": False,
-        "IndoorNumberOfCourts": "",
-        "IndoorSurface": "",
-        "Latitude": "",
-        "Longitude": "",
-        "NameFrom": "",
-        "NameTo": "",
-        "OutdoorLighting": False,
-        "OutdoorNumberOfCourts": "",
-        "OutdoorSurface": "",
-        "Radius": "",
-        "StreetNumber": "",
-        "ZipCode": "",
-        "ZipCodeFrom": "",
-        "ZipCodeTo": "",
-        "regions": str(region),
-    }
-    webdata = urllib.urlencode(data)
-    html = urllib.urlopen(url, webdata).read()
-    new_clubs_count = parse_clubs(html)
-    print("Found {} clubs.".format(new_clubs_count))
-
-
+    for club in aft_clubs.search_clubs(region):
+        clubs[club["id"]] = club
+    pprint(clubs)
 
 def main(argv):
     parser = argparse.ArgumentParser(description="Search for francophone tennis players in Belgium")
