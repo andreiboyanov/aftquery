@@ -23,6 +23,10 @@ PLAYER_INFO_LABELS = dict({
 })
 
 
+def _extract_value_from_ranking_text(text):
+    return text[:text.find(" - ")]
+
+
 def _extract_club_id_from_href(href):
     club_detail_url = '/MyAFT/Clubs/Detail/'
     url_len = len(club_detail_url)
@@ -38,11 +42,13 @@ def _get_sex_from_image(info_element):
         return ""
 
 
-
 def parse_player_details(html):
     player_details = dict()
     soup = bs4(html, "html.parser")
-    detail_body = soup.find_all("div", "detail-body player", limit=1)[0]
+    try:
+        detail_body = soup.find_all("div", "detail-body player", limit=1)[0]
+    except IndexError:
+        return {}
 
     title = detail_body.find(id="player-title").text
     first_bracket = title.find('(')

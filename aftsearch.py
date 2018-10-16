@@ -17,10 +17,6 @@ players = dict()
 clubs = dict()
 
 
-def _extract_value_from_ranking_text(text):
-    return text[:text.find(" - ")]
-
-
 def parse_player_ranking_matches(html):
     soup = bs4(html, "html.parser")
     current_ranking_element = soup.find_all(text=re.compile('Classement actuel'))[0].strip()
