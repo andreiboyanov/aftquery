@@ -3,8 +3,6 @@
 import re
 import sys
 import urllib
-import os.path
-import urlparse
 import argparse
 from pprint import pprint
 from bs4 import BeautifulSoup as bs4

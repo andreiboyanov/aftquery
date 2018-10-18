@@ -1,12 +1,8 @@
 #coding=utf-8
 
-import re
-import sys
 import requests
 import os.path
-import urlparse
-import argparse
-from pprint import pprint
+import urllib.parse
 from bs4 import BeautifulSoup as bs4
 
 from aftquery.parser.aft.common import _get_name_and_id
@@ -36,7 +32,7 @@ def _extract_club_id_from_href(href):
 def _get_sex_from_image(info_element):
     try:
         sex_image_url = info_element.find_all("image")[0].get("src")
-        sex_file_name = os.path.basename(urlparse.urlsplit(sex_image_url).path)
+        sex_file_name = os.path.basename(urllib.parse.urlsplit(sex_image_url).path)
         return os.path.splitext(sex_file_name)[0]
     except IndexError:
         return ""

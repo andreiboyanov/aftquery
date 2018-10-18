@@ -1,9 +1,5 @@
-import re
-import sys
-import urllib
-import os.path
-import urlparse
-import argparse
+import urllib.parse
+import urllib.request
 from bs4 import BeautifulSoup as bs4
 
 from .common import _get_name_and_id
@@ -44,8 +40,8 @@ def search_clubs(region=1):
         "ZipCodeTo": "",
         "regions": str(region),
     }
-    webdata = urllib.urlencode(data)
-    html = urllib.urlopen(url, webdata).read()
+    webdata = urllib.parse.urlencode(data)
+    html = urllib.request.urlopen(url, webdata.encode("utf-8")).read()
     for club in parse_clubs(html):
         yield club
 
