@@ -1,10 +1,10 @@
 from flask import Flask, jsonify
 from flask_pymongo import PyMongo
 
+
 app = Flask(__name__)
 app.config["MONGO_URI"] = "mongodb://localhost:27017/aft_collector"
 mongo = PyMongo(app)
-
 
 @app.route("/player/<player_id>", methods=['GET'])
 def get_player(player_id):
