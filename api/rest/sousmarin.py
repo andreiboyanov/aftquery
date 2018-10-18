@@ -12,6 +12,7 @@ def get_player(player_id):
     player = players.find_one({'_id': player_id})
     return jsonify(player)
 
+
 @app.route("/club/<club_id>", methods=['GET'])
 def get_club(club_id):
     clubs = mongo.db.clubs
