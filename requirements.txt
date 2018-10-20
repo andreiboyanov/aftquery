@@ -1,0 +1,5 @@
+flask
+pymongo
+Flask-PyMongo
+bs4
+requests
