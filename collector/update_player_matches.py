@@ -10,7 +10,7 @@ logging.basicConfig(filename='logs/{}.log'.format(datetime.now()),level=logging.
 def pull_player_matches(db, player_id, year):
     single_matches, double_matches = aft_players.get_player_matches(player_id=player_id)
     matches_label = "matches.{}".format(year)
-    db.players.update(
+    db.players.update_one(
         {"_id": player_id},
         {
             "$set": {
