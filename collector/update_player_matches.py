@@ -31,7 +31,7 @@ def main(arguments):
         query = {'_id': arguments[0]}
     else:
         query = {'matches': {"$exists": False}}
-    all_players = db.players.find(query)
+    all_players = db.players.find(query, no_cursor_timeout=True)
     current_index = 1
     all_players_count = all_players.count()
     for player in all_players:
@@ -45,6 +45,7 @@ def main(arguments):
         except Exception as error:
             logging.error("{} {} ==> {}".format(player_id, player_name, error))
             logging.debug(traceback.format_exc())
+    all_players.close()
 
 
 if __name__ == "__main__":
