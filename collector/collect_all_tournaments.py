@@ -12,6 +12,7 @@ def main(arguments):
     # db.aft_categories.insert_many(categories)
 
     for tour in tournament.get_tournaments_for_current_year():
+        print(tour["_id"], tour["name"], tour["date"])
         db.aft_tournaments.find_and_modify(
             query={"_id": tour["_id"]},
             update={

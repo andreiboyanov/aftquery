@@ -42,7 +42,12 @@ def parse_tournament(tournament):
     tournament_details_url = info_elements[0].find("a").get("data-url")
     result["_id"] = tournament_details_url.split("/")[-1]
 
-    result["tournament category"] = info_elements[1].text.strip()
+    category_text = info_elements[1].text.strip()
+    if "inscri" in category_text:
+        result["tournament category"] = ""
+    else:
+        result["tournament category"] = category_text
+
     criterium = info_elements[2].text.strip()
     if criterium:
         result["criterium"] = criterium
@@ -98,7 +103,7 @@ def get_tournaments_for_current_year():
         url = "http://www.aftnet.be/MyAFT/Competitions/TournamentSearchResultData"
         web_data = urllib.parse.urlencode(
             {
-                "Region": "1, 3, 4, 6",
+                "Region": "1,3,4,6",
                 "SearchByGeoloc": "false",
                 "PeriodStartDate": month[0],
                 "PeriodEndDate": month[1],
@@ -106,7 +111,8 @@ def get_tournaments_for_current_year():
         )
 
         html = urllib.request.urlopen(url, web_data.encode("utf-8")).read()
-        for tournament in parse_tournaments(html):
+        tournaments = parse_tournaments(html)
+        for tournament in tournaments:
             if tournament["_id"] not in processed_ids:
                 processed_ids.append(tournament["_id"])
                 yield tournament
