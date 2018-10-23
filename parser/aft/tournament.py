@@ -1,6 +1,7 @@
 import urllib.parse
 import urllib.request
 from datetime import datetime
+from calendar import monthrange
 from bs4 import BeautifulSoup as bs4
 
 
@@ -33,7 +34,7 @@ def parse_tournament(tournament):
     try:
         delimiter_index = name_and_date.rindex(" ")
         result["name"] = name_and_date[:delimiter_index]
-        result["date"] = name_and_date[delimiter_index + 1:]
+        result["date"] = name_and_date[delimiter_index + 1 :]
     except ValueError:
         result["name"] = ""
         result["date"] = name_and_date
@@ -54,18 +55,57 @@ def parse_tournaments(html):
         yield parse_tournament(tournament)
 
 
+def get_season_weeks(month):
+    url = (
+        "http://www.aftnet.be/MyAFT/Competitions/GetSeasonWeeksDdl?firstDayOfMonth=?firstDayOfMonth={}"
+        "&tabName=NearMyPlace"
+        "".format(month)
+    )
+    web_data = urllib.parse.urlencode(
+        {"firstDyaOfMonth": month, "tabName": "NearMyPlace"}
+    )
+    html = urllib.request.urlopen(url, web_data.encode("utf-8")).read()
+
+    soup = bs4(html, features="html.parser")
+    weeks = list()
+    for week_element in soup.find_all("option")[1:]:
+        weeks.append(week_element["value"])
+    return weeks
+
+
 def get_tournaments_for_current_year():
     current_year = datetime.now().year
     previous_year = current_year - 1
-    months = ["01/{}/{}".format(month, previous_year) for month in [11, 12]]
-    months += ["01/{}/{}".format(month, current_year) for month in range(1, 13)]
+    months = [
+        (
+            "01/{}/{}".format(month, previous_year),
+            "{}/{}/{}".format(
+                monthrange(previous_year, month)[1], month, previous_year
+            ),
+        )
+        for month in [11, 12]
+    ]
+    months += [
+        (
+            "01/{}/{}".format(month, current_year),
+            "{}/{}/{}".format(monthrange(current_year, month)[1], month, current_year),
+        )
+        for month in range(1, 13)
+    ]
     processed_ids = list()
     for month in months:
-        url = (
-            "http://www.aftnet.be/MyAFT/Competitions/GetCompetitionsTournamentsByRegionResult?firstDayOfMonth={}"
-            "".format(month)
+
+        url = "http://www.aftnet.be/MyAFT/Competitions/TournamentSearchResultData"
+        web_data = urllib.parse.urlencode(
+            {
+                "Region": "1, 3, 4, 6",
+                "SearchByGeoloc": "false",
+                "PeriodStartDate": month[0],
+                "PeriodEndDate": month[1],
+            }
         )
-        html = urllib.request.urlopen(url).read()
+
+        html = urllib.request.urlopen(url, web_data.encode("utf-8")).read()
         for tournament in parse_tournaments(html):
             if tournament["_id"] not in processed_ids:
                 processed_ids.append(tournament["_id"])
