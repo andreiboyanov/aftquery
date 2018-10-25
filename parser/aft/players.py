@@ -130,7 +130,7 @@ def parse_player_name_and_ranking(info_element):
     try:
         name_and_ranking = info_element.text.strip()
         name_end_index = name_and_ranking.index("(")
-        player_name = name_and_ranking[: name_end_index - 1]
+        player_name = name_and_ranking[: name_end_index].strip()
         player_ranking = name_and_ranking[name_end_index + 1 : -1]
     except ValueError:
         player_name = None
@@ -140,9 +140,9 @@ def parse_player_name_and_ranking(info_element):
     return player_id, player_name, player_ranking
 
 
-def parse_score(info_element):
+def parse_score(info_element, sets_delimiter="-"):
     result = info_element.text.strip()
-    set_scores = result.split("-")
+    set_scores = result.split(sets_delimiter)
     try:
         score = [list(map(int, set_score.split("/"))) for set_score in set_scores]
     except ValueError:

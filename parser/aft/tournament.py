@@ -4,6 +4,8 @@ from datetime import datetime
 from calendar import monthrange
 from bs4 import BeautifulSoup as bs4
 
+from .players import parse_player_name_and_ranking, parse_score
+
 
 def parse_category(element):
     category = {"_id": element["value"], "name": element.text}
@@ -101,7 +103,7 @@ def get_tournaments_for_current_year():
     for month in months:
 
         url = "http://www.aftnet.be/MyAFT/Competitions/TournamentSearchResultData"
-        web_data = urllib.parse.urlencode(
+        query = urllib.parse.urlencode(
             {
                 "Region": "1,3,4,6",
                 "SearchByGeoloc": "false",
@@ -110,9 +112,95 @@ def get_tournaments_for_current_year():
             }
         )
 
-        html = urllib.request.urlopen(url, web_data.encode("utf-8")).read()
+        html = urllib.request.urlopen(url, query.encode("utf-8")).read()
         tournaments = parse_tournaments(html)
         for tournament in tournaments:
             if tournament["_id"] not in processed_ids:
                 processed_ids.append(tournament["_id"])
                 yield tournament
+
+
+def parse_player_info(info_element):
+    player_id, name, ranking = parse_player_name_and_ranking(info_element.strong.a)
+    club_text = info_element.text
+    club_name = club_text[club_text.rfind("(") + 1 : club_text.rfind(")")]
+    winner_icon = info_element.find("img", src="/MyAFT/Content/Images/checkIcon.png")
+    winner = winner_icon is not None
+    return player_id, name, ranking, club_name, winner
+
+
+def parse_category_info(info_element):
+    name = info_element.text.strip()
+    category_url = urllib.parse.urlparse(info_element.a["data-url"])
+    category_id = category_url.path.split("/")[-1]
+    return name, category_id
+
+
+def parse_single_matches(tournament_id, soup):
+    for match_element in soup.find_all("dl", {"class": "grid-data-item"}):
+        info_elements = match_element.find_all("dd")
+        player_1_id, player_1_name, player_1_ranking, player_1_club, player_1_won = parse_player_info(
+            info_elements[0]
+        )
+        player_2_id, player_2_name, player_2_ranking, player_2_club, player_2_won = parse_player_info(
+            info_elements[2]
+        )
+        category_name, category_id = parse_category_info(info_elements[4])
+        tournament_stage = info_elements[5].text.strip()
+        match_date_and_time = info_elements[6].text.strip()
+        score, result = parse_score(info_elements[7], " ")
+        match = {
+            "player 1 id": player_1_id,
+            "player 1 name": player_1_name,
+            "player 1 ranking": player_1_ranking,
+            "player 1 club": player_1_club,
+            "player 2 id": player_2_id,
+            "player 2 name": player_2_name,
+            "player 2 ranking": player_2_ranking,
+            "player 2 club": player_2_club,
+            "tournament id": tournament_id,
+            "tournament stage": tournament_stage,
+            "category id": category_id,
+            "category name": category_name,
+            "date and time": match_date_and_time,
+            "score": score,
+            "text score": result,
+            "winner": 1 if player_1_won else 2,
+        }
+        yield match
+
+
+def get_tournament_matches(tournament_id):
+    matches = list()
+    url = "http://www.aftnet.be/MyAFT/Competitions/SearchTournamentMatches"
+    query = {
+        "idTournoi": tournament_id,
+        "meetingDateFrom": "01/11/2017",
+        "meetingDateTo": "31/12/2018",
+        "numFedOrName": "",
+        "clubIdOrName": "",
+        "singleOrDouble": "S",
+    }
+    html = urllib.request.urlopen(
+        url, urllib.parse.urlencode(query).encode("utf-8")
+    ).read()
+    soup = bs4(html, features="html.parser")
+    single_matches_element = soup.find("div", {"id": "collapse_result_matches_single"})
+    if single_matches_element:
+        matches += list(parse_single_matches(tournament_id, single_matches_element))
+        page_count_element = single_matches_element.find(
+            "div", {"id": "divActionBottomMatchesResult_S"}
+        )
+        if page_count_element is not None:
+            page_count = page_count_element.a["data-totalpages"]
+        else:
+            page_count = 1
+        for page_number in range(2, int(page_count) + 1):
+            url = "http://www.aftnet.be/MyAFT/Competitions/GetTournamentMatchesResultByPage"
+            query.update(pageNumber=page_number)
+            html = urllib.request.urlopen(
+                url, urllib.parse.urlencode(query).encode("utf-8")
+            ).read()
+            soup = bs4(html, features="html.parser")
+            matches += list(parse_single_matches(tournament_id, soup))
+    return matches
