@@ -18,10 +18,5 @@ def test_player_matches_compare_to_aft_matches(sousmarin_db):
     missing_tournaments_in_aft_matches = (
         tournaments_from_player - tournaments_from_aft_matches
     )
-    matches_from_missing_tournaments = [
-        match
-        for match in player_matches
-        if match["tournament id"] in missing_tournaments_in_aft_matches
-    ]
     assert len(tournaments_from_player) == len(tournaments_from_aft_matches)
     assert len(player_matches) == len(list(aft_matches))
