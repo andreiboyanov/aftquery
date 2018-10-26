@@ -100,24 +100,24 @@ def get_tournaments_for_current_year():
         for month in range(1, 13)
     ]
     processed_ids = list()
-    for month in months:
+    for region in [1, 3, 4, 6]:
+        for month in months:
+            url = "http://www.aftnet.be/MyAFT/Competitions/TournamentSearchResultData"
+            query = urllib.parse.urlencode(
+                {
+                    "Region": str(region),
+                    "SearchByGeoloc": "false",
+                    "PeriodStartDate": month[0],
+                    "PeriodEndDate": month[1],
+                }
+            )
 
-        url = "http://www.aftnet.be/MyAFT/Competitions/TournamentSearchResultData"
-        query = urllib.parse.urlencode(
-            {
-                "Region": "1,3,4,6",
-                "SearchByGeoloc": "false",
-                "PeriodStartDate": month[0],
-                "PeriodEndDate": month[1],
-            }
-        )
-
-        html = urllib.request.urlopen(url, query.encode("utf-8")).read()
-        tournaments = parse_tournaments(html)
-        for tournament in tournaments:
-            if tournament["_id"] not in processed_ids:
-                processed_ids.append(tournament["_id"])
-                yield tournament
+            html = urllib.request.urlopen(url, query.encode("utf-8")).read()
+            tournaments = parse_tournaments(html)
+            for tournament in tournaments:
+                if tournament["_id"] not in processed_ids:
+                    processed_ids.append(tournament["_id"])
+                    yield tournament
 
 
 def parse_player_info(info_element):
