@@ -1,4 +1,5 @@
 import sys
+import argparse
 from datetime import datetime
 import pymongo
 from aftquery.parser.aft import tournament as aft_tournament
@@ -10,6 +11,16 @@ logging.basicConfig(
     filename="logs/{}_collect_tournament_matches.log".format(datetime.now()),
     level=logging.DEBUG,
 )
+
+
+def print_tournament(tournament, index, count, skip=False):
+    print(
+        "{}/{}".format(index, count),
+        tournament["_id"],
+        tournament["name"],
+        tournament["date"],
+        "...skiping" if skip else "",
+    )
 
 
 def add_tournament_matches(db, tournament_id):
@@ -24,18 +35,23 @@ def main(arguments):
     client = pymongo.MongoClient()
     db = client.aft_collector
 
-    if len(arguments) > 0:
-        add_tournament_matches(db, arguments[0])
+    if arguments.tournament_id:
+        print_tournament({"name": "", "date": "", "_id": arguments.tournament_id}, 1, 1)
+        add_tournament_matches(db, arguments.tournament_id)
+        return
     all_tournaments = db.aft_tournaments.find({}, no_cursor_timeout=True)
+    tournaments_count = all_tournaments.count()
     for index, tournament in enumerate(all_tournaments):
         try:
-            print(
-                "{}/{}".format(index, all_tournaments.count()),
-                tournament["_id"],
-                tournament["name"],
-                tournament["date"],
-            )
-            add_tournament_matches(db, tournament["_id"])
+            if (
+                arguments.update
+                and db.aft_matches.count_documents({"tournament id": tournament["_id"]})
+                > 0
+            ):
+                print_tournament(tournament, index, tournaments_count, skip=True)
+            else:
+                print_tournament(tournament, index, tournaments_count)
+                add_tournament_matches(db, tournament["_id"])
         except Exception as error:
             logging.error(
                 "{} {} {} ==> {}".format(
@@ -47,4 +63,17 @@ def main(arguments):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    parser = argparse.ArgumentParser(
+        "Pull all matches for a given tournament or for all tournaments"
+    )
+    parser.add_argument(
+        "-t", "--tournament-id", help="Get matches only for this tournament"
+    )
+    parser.add_argument(
+        "-u",
+        "--update",
+        action="store_true",
+        help="Skip tournaments that already have matches in the database.",
+    )
+    arguments = parser.parse_args(sys.argv[1:])
+    main(arguments)
