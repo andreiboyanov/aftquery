@@ -1,4 +1,4 @@
-from aftquery.collector.collect_tournament_macthes import add_tournament_matches
+from aftquery.collector.collect_tournament_matches import add_tournament_matches
 
 
 def test_add_tournament_matches(sousmarin_db):
