@@ -269,7 +269,7 @@ def parse_tournament_category_draws(tournament_id, category):
                 match_score = list(zip(player_1["score"].split("-"), player_2["score"].split("-")))
                 match_score = [set_score for set_score in match_score if set_score != ("", "")]
                 match_description = {
-                    "match id": player_2["matchId"],
+                    "_id": player_2["matchId"],
                     "tournament id": tournament_id,
                     "category id": category["_id"],
                     "category name": category["name"],
