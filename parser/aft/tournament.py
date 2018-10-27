@@ -257,7 +257,7 @@ def parse_tournament_category_draws(tournament_id, category):
         response = urllib.request.urlopen(
             url, urllib.parse.urlencode(query).encode("utf-8")
         ).read()
-        draw_data = json.loads(response)
+        draw_data = json.loads(response.decode())
         draw_rounds = json.loads(draw_data["drawData"])
         draw_round_names = json.loads(draw_data["roundNames"])
         for draw_round in draw_rounds:
