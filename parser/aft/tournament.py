@@ -1,3 +1,4 @@
+import json
 import urllib.parse
 import urllib.request
 from datetime import datetime
@@ -132,7 +133,7 @@ def parse_player_info(info_element):
 def parse_category_info(info_element):
     name = info_element.text.strip()
     category_url = urllib.parse.urlparse(info_element.a["data-url"])
-    category_id = category_url.path.split("/")[-1]
+    category_id = None
     return name, category_id
 
 
@@ -204,3 +205,101 @@ def get_tournament_matches(tournament_id):
             soup = bs4(html, features="html.parser")
             matches += list(parse_single_matches(tournament_id, soup))
     return matches
+
+
+def parse_tournament_category_from_dropdown(category_element):
+    category_id_and_draws = category_element["value"].split("|")
+    try:
+        category_id, draw_types = category_id_and_draws
+    except ValueError:
+        category_id, draw_types = category_id_and_draws[0], ""
+    category_name, category_rankings = category_element.text.strip().split("(")
+    category_rankings = category_rankings[:-1]
+    return {
+        "_id": category_id,
+        "name": category_name,
+        "rankings": category_rankings,
+        "draw types": draw_types
+    }
+
+
+def parse_tournament_category(category_element):
+    category_id = category_element["id"].split("-")[1]
+    info_elements = category_element.find_all("dd")
+    category_name = info_elements[0].text.strip()
+    category_rankings = info_elements[1].text.strip()
+    is_for_criterium = info_elements[2].input["checked"] == "checked"
+    return {
+        "_id": category_id,
+        "name": category_name,
+        "rankings": category_rankings,
+        "criterium": is_for_criterium,
+    }
+
+
+def parse_tournament_categories(html):
+    soup = bs4(html, features="html.parser")
+    category_elements = soup.find("select", {"id": "drawCategory"}).find_all("option")[1:]
+    for category_element in category_elements:
+        yield parse_tournament_category_from_dropdown(category_element)
+
+
+def parse_tournament_category_draws(tournament_id, category):
+    for draw_type in category["draw types"]:
+        url = "http://www.aftnet.be/MyAFT/Competitions/GetTournamentDrawData"
+        query = {
+            "idTournoi": tournament_id,
+            "idCategory": category["_id"],
+            "drawType": draw_type,
+            "selectedRoundIndex": "",
+            "selectedRowIndex": "",
+        }
+        response = urllib.request.urlopen(
+            url, urllib.parse.urlencode(query).encode("utf-8")
+        ).read()
+        draw_data = json.loads(response)
+        draw_rounds = json.loads(draw_data["drawData"])
+        draw_round_names = json.loads(draw_data["roundNames"])
+        for draw_round in draw_rounds:
+            for match in draw_round:
+                try:
+                    player_1, player_2 = match
+                except ValueError:
+                    continue
+                match_score = list(zip(player_1["score"].split("-"), player_2["score"].split("-")))
+                match_score = [set_score for set_score in match_score if set_score != ("", "")]
+                match_description = {
+                    "match id": player_2["matchId"],
+                    "tournament id": tournament_id,
+                    "category id": category["_id"],
+                    "category name": category["name"],
+                    "category rankings": category["rankings"],
+                    "draw type": draw_type,
+                    "player 1b id": player_1["idB"],
+                    "player 1b name": player_1["nameB"],
+                    "player 1 seed": player_1["seed"],
+                    "player 1 won": player_1["statusWin"] == 'V',
+                    "player 1 has stats": player_1["hasStats"],
+                    "player 1 result type": player_1["resultType"],
+                    "player 1 draw position": player_1["drawPosition"],
+                    "player 2 id": player_2["id"],
+                    "player 2 name": player_2["name"],
+                    "player 2b id": player_2["idB"],
+                    "player 2b name": player_2["nameB"],
+                    "player 2 seed": player_2["seed"],
+                    "player 2 won": player_2["statusWin"] == 'V',
+                    "player 2 has stats": player_2["hasStats"],
+                    "player 2 result type": player_2["resultType"],
+                    "player 2 draw position": player_2["drawPosition"],
+                    "winner": 1 if player_1["statusWin"] == "v" else 2,
+                    "score": match_score,
+                }
+                yield match_description
+
+
+def get_tournament_draws(tournament_id):
+    url = "http://www.aftnet.be/MyAFT/Competitions/TournamentDraw?idTournoi={}".format(tournament_id)
+    html = urllib.request.urlopen(url).read()
+    categories = list(parse_tournament_categories(html))
+    for category in categories:
+        yield from parse_tournament_category_draws(tournament_id, category)
