@@ -275,6 +275,8 @@ def parse_tournament_category_draws(tournament_id, category):
                     "category name": category["name"],
                     "category rankings": category["rankings"],
                     "draw type": draw_type,
+                    "player 1 id": player_1["id"],
+                    "player 1 name": player_1["name"],
                     "player 1b id": player_1["idB"],
                     "player 1b name": player_1["nameB"],
                     "player 1 seed": player_1["seed"],
