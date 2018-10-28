@@ -13,10 +13,7 @@ logging.basicConfig(
 
 
 def set_player_ranking(db, player, year, index, count):
-    name_chunks = player["name"].split(" ")
-    first_name = name_chunks[-1]
-    last_name = "_".join(name_chunks[:-1])
-    new_ranking = ranking.get_ranking_prevision(player["_id"], first_name, last_name)
+    new_ranking = ranking.get_ranking_prevision(player["_id"])
     if new_ranking:
         print(
             "{}/{}".format(index, count),
@@ -59,9 +56,18 @@ def main(arguments):
         set_player_ranking(db, player, next_year, 1, 1)
         return
 
-    all_players = db.players.find(
-        {}, {"_id": True, "name": True, "single_ranking": True}, no_cursor_timeout=True
-    )
+    if arguments.update:
+        all_players = db.players.find(
+            {"ranking.{}.single".format(next_year): {"$exists": False}},
+            {"_id": True, "name": True, "single_ranking": True},
+            no_cursor_timeout=True,
+        )
+    else:
+        all_players = db.players.find(
+            {},
+            {"_id": True, "name": True, "single_ranking": True},
+            no_cursor_timeout=True,
+        )
     count = all_players.count()
     for index, player in enumerate(all_players):
         set_player_ranking(db, player, next_year, index, count)
@@ -73,5 +79,11 @@ if __name__ == "__main__":
         "Get the prevision for the next year ranking from classement-tennis.be"
     )
     parser.add_argument("-p", "--player-id", help="Get ranking for given player only")
+    parser.add_argument(
+        "-u",
+        "--update",
+        action="store_true",
+        help="Skip players which already have a ranking prevision for the next year.",
+    )
     arguments = parser.parse_args(sys.argv[1:])
     main(arguments)

@@ -40,6 +40,19 @@ def _get_sex_from_image(info_element):
         return ""
 
 
+def get_first_and_family_name(name):
+    name_index = 0
+    for name_character in name:
+        if name_character.islower():
+            if name_index > 0:
+                name_index -= 1
+            break
+        name_index += 1
+    family_name = name[:name_index].strip()
+    first_name = name[name_index:]
+    return first_name, family_name
+
+
 def parse_player_details(html):
     player_details = dict()
     soup = bs4(html, "html.parser")
