@@ -6,9 +6,10 @@ from aftquery.parser.aft import clubs as aft_clubs
 def main(arguments):
     client = pymongo.MongoClient()
     db = client.aft_collector
-    for region in [1, 3, 4, 6]:
+    for region in range(1, 10):
         for club in aft_clubs.search_clubs(region=region):
             club_id = club["id"]
+            print(region, club_id, club["name"])
             db.clubs.find_and_modify(
                 query={"_id": club_id},
                 update={
