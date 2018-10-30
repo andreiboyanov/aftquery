@@ -13,7 +13,7 @@ def main(arguments):
             club_id=club_id, region=club["region"]
         ):
             for player_id, player in players_chunk.items():
-                print(player_id, player["name"])
+                print(club_id, player_id, player["name"])
                 db.players.find_and_modify(
                     query={"_id": player_id},
                     update={
