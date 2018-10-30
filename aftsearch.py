@@ -66,6 +66,7 @@ def search_clubs(region=1):
 
 def main(argv):
     parser = argparse.ArgumentParser(description="Search for francophone tennis players in Belgium")
+    parser.add_argument("--region", default="1", help="Search in this region (comma-separated list of integer ids)")
     parser.add_argument("--players", action="store_true", help="Search for players")
     parser.add_argument("--clubs", action="store_true", help="Search for clubs")
     parser.add_argument("--player-name", default="", help="Filter players by name")
@@ -78,18 +79,19 @@ def main(argv):
     if arguments.player_id:
         for player_ids in arguments.player_id:
             for player_id in player_ids:
-                player_details = get_player_details(player_id)
+                player_details = aft_players.get_player_details(player_id)
                 if arguments.show_matches:
                     get_matches(player_id, name=player_details['name'])
     elif arguments.players or arguments.club_id:
-        search_players(club_id=arguments.club_id, name=arguments.player_name)
+        search_players(region=arguments.region, club_id=arguments.club_id, name=arguments.player_name)
     elif arguments.clubs:
-        search_clubs()
+        search_clubs(region=arguments.region)
     else:
         print("Without concrete request I'll search for all players in AFT.")
-        search_clubs()
+        search_clubs(region=arguments.region)
         for club_id in clubs:
-            search_players(club_id=club_id)
+            search_players(region=arguments.region, club_id=club_id)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
