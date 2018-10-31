@@ -101,7 +101,7 @@ def get_tournaments_for_current_year():
         for month in range(1, 13)
     ]
     processed_ids = list()
-    for region in [1, 3, 4, 6]:
+    for region in range(1, 10):
         for month in months:
             url = "http://www.aftnet.be/MyAFT/Competitions/TournamentSearchResultData"
             query = urllib.parse.urlencode(
