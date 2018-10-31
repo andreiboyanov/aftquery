@@ -13,6 +13,7 @@ PLAYER_INFO_LABELS = dict(
         u"Nationalité": "nationality",
         u"Sexe": "sex",
         u"Classement simple": "single ranking",
+        u"Classement simple interclubs": "single interclub ranking",
         u"Valeur double": "double points",
         u"Première affiliation": "first affiliation",
         u"Actif depuis le": "active from",
@@ -77,17 +78,17 @@ def parse_player_details(html):
     current_label = None
     for info_element in info.find_all():
         if info_element.name == "dt":
-            current_label = info_element.text[:-1]
+            current_label = info_element.text[:-1].strip()
         elif info_element.name == "dd":
             if current_label not in PLAYER_INFO_LABELS:
-                player_details[current_label] = info_element.text
+                player_details[current_label] = info_element.text.strip()
                 continue
             if current_label == "Sexe":
                 player_details[PLAYER_INFO_LABELS[current_label]] = _get_sex_from_image(
                     info_element
                 )
             else:
-                player_details[PLAYER_INFO_LABELS[current_label]] = info_element.text
+                player_details[PLAYER_INFO_LABELS[current_label]] = info_element.text.strip()
     player_details["single ranking"] = _extract_value_from_ranking_text(
         player_details["single ranking"]
     )

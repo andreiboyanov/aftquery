@@ -1,4 +1,5 @@
 import sys
+import argparse
 import pymongo
 from aftquery.parser.aft import players as aft_players
 
@@ -6,7 +7,10 @@ from aftquery.parser.aft import players as aft_players
 def main(arguments):
     client = pymongo.MongoClient()
     db = client.aft_collector
-    all_players = db.players.find({'details': {'$exists': False}}, no_cursor_timeout=True)
+    if arguments.player_id:
+        all_players = db.players.find({"_id": arguments.player_id})
+    else:
+        all_players = db.players.find({'details': {'$exists': False}}, no_cursor_timeout=True)
     count = all_players.count()
     for index, player in enumerate(all_players):
         player_id = player["_id"]
@@ -26,5 +30,12 @@ def main(arguments):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    parser = argparse.ArgumentParser(
+        "Get player details from it profile page on aftnet.be"
+    )
+    parser.add_argument(
+        "-p", "--player-id", help="Only for th egiven player only"
+    )
+    arguments = parser.parse_args(sys.argv[1:])
+    main(arguments)
 
