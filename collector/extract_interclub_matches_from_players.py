@@ -226,7 +226,6 @@ def extract_interclub_matches(db, player, year, index, count):
                     }
                 )
                 if same_match.count() > 0:
-                    print("Skipping - already in the database")
                     continue
                 double_match = create_double_interclub_match(db, player, year, match)
                 db.interclub_matches.insert_one(double_match)
@@ -237,7 +236,13 @@ def extract_interclub_matches(db, player, year, index, count):
                 )
             )
             logging.debug(traceback.format_exc())
-
+    db.players.find_and_modify(
+        query={"_id": player["_id"]},
+        update={
+            "$currentDate": {"last_exported_interclubs": True},
+        },
+        upsert=False,
+    )
 
 def main(arguments):
     client = pymongo.MongoClient()
@@ -249,49 +254,23 @@ def main(arguments):
         return
 
     if arguments.update:
-        lookup_stage = {
-            "$lookup": 
-            {
-                "from": "interclub_matches",
-                "localField": "_id",
-                "foreignField": "player 1 id",
-                "as": "player_matches"
-            }
+        query = {
+                "last_exported_interclubs": {"$exists": False}
         }
-        match_stage = {
-            "$match":
-            {
-                "player_matches": { "$ne": [] }
-            }
-        }
- 
-        count = db.players.aggregate([
-            lookup_stage,
-            match_stage,
-            {
-                "$group": {
-                    "_id": None,
-                    "count": { "$sum": 1 }
-                }
-            }
-        ]).next()["count"]
-        all_players = db.players.aggregate([
-            lookup_stage,
-            match_stage,
-        ])
     else:
-        all_players = db.players.find(
-            {},
-            {
-                "_id": True,
-                "name": True,
-                "single_ranking": True,
-                "matches": True,
-                "classement_tennis": True,
-            },
-            no_cursor_timeout=True,
-        )
-        count = all_players.count()
+        query = {}
+    all_players = db.players.find(
+        query,
+        {
+            "_id": True,
+            "name": True,
+            "single_ranking": True,
+            "matches": True,
+            "classement_tennis": True,
+        },
+        no_cursor_timeout=True,
+    )
+    count = all_players.count()
     for index, player in enumerate(all_players):
         if "matches" not in player:
             continue
