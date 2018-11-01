@@ -241,18 +241,50 @@ def main(arguments):
         extract_interclub_matches(db, player, year, 1, 1)
         return
 
-    all_players = db.players.find(
-        {},
-        {
-            "_id": True,
-            "name": True,
-            "single_ranking": True,
-            "matches": True,
-            "classement_tennis": True,
-        },
-        no_cursor_timeout=True,
-    )
-    count = all_players.count()
+    if arguments.update:
+        lookup_stage = {
+            "$lookup": 
+            {
+                "from": "interclub_matches",
+                "localField": "_id",
+                "foreignField": "player 1 id",
+                "as": "player_matches"
+            }
+        }
+        match_stage = {
+            "$match":
+            {
+                "player_matches": { "$ne": [] }
+            }
+        }
+ 
+        count = db.players.aggregate([
+            lookup_stage,
+            match_stage,
+            {
+                "$group": {
+                    "_id": None,
+                    "count": { "$sum": 1 }
+                }
+            }
+        ]).next()["count"]
+        all_players = db.players.aggregate([
+            lookup_stage,
+            match_stage,
+        ])
+    else:
+        all_players = db.players.find(
+            {},
+            {
+                "_id": True,
+                "name": True,
+                "single_ranking": True,
+                "matches": True,
+                "classement_tennis": True,
+            },
+            no_cursor_timeout=True,
+        )
+        count = all_players.count()
     for index, player in enumerate(all_players):
         if "matches" not in player:
             continue
@@ -271,6 +303,12 @@ if __name__ == "__main__":
         "-y",
         "--year",
         help="Extract matches for the specified year. Defaults to the current year.",
+    )
+    parser.add_argument(
+        "-u",
+        "--update",
+        action="store_true",
+        help="Skip players that already have interclub matches in the database.",
     )
     arguments = parser.parse_args(sys.argv[1:])
     main(arguments)
