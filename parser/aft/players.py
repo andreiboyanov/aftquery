@@ -89,9 +89,6 @@ def parse_player_details(html):
                 )
             else:
                 player_details[PLAYER_INFO_LABELS[current_label]] = info_element.text.strip()
-    player_details["single ranking"] = _extract_value_from_ranking_text(
-        player_details["single ranking"]
-    )
     player_details["double points"] = _extract_value_from_ranking_text(
         player_details["double points"]
     )
