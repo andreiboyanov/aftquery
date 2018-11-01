@@ -102,7 +102,7 @@ def create_double_interclub_match(db, player, year, match):
                 )
             ]
             if opponent_match:
-                players_team = (opponent_match[0]["tournament name"],)
+                players_team = opponent_match[0]["tournament name"]
             else:
                 players_team = None
                 logging.warning(
@@ -203,9 +203,7 @@ def extract_interclub_matches(db, player, year, index, count):
         player["single_ranking"],
     )
 
-    db.interclub_matches.delete_many(
-        {"$or": [{"player 1 id": player["_id"]}, {"player 1b id": player["_id"]}]}
-    )
+    db.interclub_matches.delete_many({"player 1 id": player["_id"]})
     for match in player["matches"][year]["single"]:
         try:
             if match["tournament type"] == "interclub":
@@ -221,6 +219,15 @@ def extract_interclub_matches(db, player, year, index, count):
     for match in player["matches"][year]["double"]:
         try:
             if match["tournament type"] == "interclub":
+                same_match = db.interclub_matches.find(
+                    {
+                        "interclub meeting id": match["interclub meeting id"],
+                        "player 1b id": player["_id"],
+                    }
+                )
+                if same_match.count() > 0:
+                    print("Skipping - already in the database")
+                    continue
                 double_match = create_double_interclub_match(db, player, year, match)
                 db.interclub_matches.insert_one(double_match)
         except:
