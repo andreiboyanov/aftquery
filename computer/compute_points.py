@@ -2,6 +2,7 @@ import sys
 import argparse
 import pymongo
 from datetime import datetime
+from .aft_rules.ranking_points import SINGLE_RANKING_POINTS
 
 import logging
 
@@ -15,19 +16,71 @@ def compute_interclub_points(db, player, year):
     interclub_points = dict(
         participation=0,
         victory=0,
-        details=list(),
+        details=dict(participations=dict(), victories=list()),
     )
-    single_interclub_matches = [
-        match
-        for match in player.matches[year]["single"]
-        if match["match_type"] == "interclub"
-    ]
-    double_interclub_matches = [
-        match
-        for match in player.matches[year]["double"]
-        if match["match_type"] == "interclub"
-    ]
-    player_ranking = player.classement_tennis["2019"]["single"]
+    interclub_matches = db.interclub_matches.find(
+        {"$or": [{"player 1 id": player["_id"]}, {"player 1b id": player["_id"]}]}
+    )
+    player_ranking = player["classement_tennis"]["2019"]["single"]
+    for match in interclub_matches:
+        meeting_id = match["interclub meeting id"]
+        if match["match type"] == "single":
+            opponent_id = match["player 2 id"]
+            if opponent_id is not None:
+                opponent = db.players.find_one({"_id": opponent_id})
+                try:
+                    points_won = SINGLE_RANKING_POINTS[
+                        opponent["classement_tennis"]["2019"]["single"]
+                    ]
+                    interclub_points["details"]["victories"].append(
+                        {
+                            "tournament type": "interclub",
+                            "match type": "single",
+                            "match id": match["_id"],
+                            "victory_points": points_won,
+                        }
+                    )
+                except KeyError:
+                    logging.error(
+                        "Unknown ranking {} of player {} ({})".format(
+                            opponent["details.single ranking"],
+                            opponent["name"],
+                            opponent_id,
+                        )
+                    )
+            else:
+                logging.warning(
+                    "Player {} ({}) had no opponent for the match {} "
+                    "during the interclubs meeting {}".format(
+                        player["name"],
+                        player["_id"],
+                        match["_id"],
+                        meeting_id,
+                    )
+                )
+        if meeting_id not in interclub_matches["details"]["participations"]:
+            meeting_matches = db.interclub_matches.find(
+                {
+                    "interclub meeting id": meeting_id,
+                    "opponent team": match["opponent team"]
+                }
+            )
+            team_players = set()
+            for meeting_match in meeting_matches:
+                team_players.add(meeting_match["player 1 id"])
+                if "player 1b id" in meeting_match:
+                    team_players.add(meeting_match["player 1b id"])
+                players_count = len(team_players)
+                try:
+                    interclub_points["details"]["participations"][meeting_id] = SINGLE_RANKING_POINTS[player_ranking] * players_count
+                except KeyError:
+                    logging.error(
+                        "Unknown ranking {} of player {} ({})".format(
+                            player_ranking,
+                            player["name"],
+                            player["_id"],
+                        )
+                    )
 
 
 def compute_player_points(db, player, year):
