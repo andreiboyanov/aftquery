@@ -38,7 +38,7 @@ def process_tournament_matches(db, tournament, update_only, index, tournaments_c
 
 def process_tournament_draws(db, tournament, update_only, index, tournaments_count):
     tournament_id = tournament["_id"]
-    if (update_only and db.aft_tournament_draws.count_documents({"tournament id": tournament["_id"]}) > 0):
+    if update_only and db.aft_tournament_draws.count_documents({"tournament id": tournament["_id"]}) > 0:
         print_tournament(tournament, index, tournaments_count, skip=True)
         return
     print_tournament(tournament, index, tournaments_count)
