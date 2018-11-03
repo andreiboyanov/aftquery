@@ -10,5 +10,6 @@ def test_process_tournament_matches(sousmarin_db):
 
 
 def test_process_tournament_draws(sousmarin_db):
-    process_tournament_draws(sousmarin_db, "313669")
+    tournament = sousmarin_db.aft_tournaments.find_one({"_id": "313669"})
+    process_tournament_draws(sousmarin_db, tournament, False, 1, 1)
     assert sousmarin_db.aft_tournament_draws.count_documents({"tournament id": "313669"}) == 238
