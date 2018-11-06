@@ -1,8 +1,9 @@
+import re
 import sys
 import argparse
 import pymongo
 from datetime import datetime
-from .aft_rules.ranking_points import SINGLE_RANKING_POINTS
+from aftquery.computer.aft_rules.ranking_points import SINGLE_RANKING_POINTS
 
 import logging
 
@@ -13,37 +14,40 @@ logging.basicConfig(
 
 
 def compute_interclub_points(db, player, year):
-    interclub_points = dict(
-        participation=0,
-        victory=0,
-        details=dict(participations=dict(), victories=list()),
-    )
+    interclub_points = dict(total=0, details=dict())
     interclub_matches = db.interclub_matches.find(
         {"$or": [{"player 1 id": player["_id"]}, {"player 1b id": player["_id"]}]}
     )
-    player_ranking = player["classement_tennis"]["2019"]["single"]
+    try:
+        player_ranking = player["classement_tennis"]["2019"]["single"]
+    except KeyError:
+        player_ranking = player["single_ranking"]
+    try:
+        player_points = SINGLE_RANKING_POINTS[player_ranking]
+    except KeyError:
+        player_points = 0
+        logging.error(
+            "Unknown ranking {} of player {} ({})".format(
+                player_ranking, player["name"], player["_id"]
+            )
+        )
     for match in interclub_matches:
         meeting_id = match["interclub meeting id"]
-        if match["match type"] == "single":
-            opponent_id = match["player 2 id"]
-            if opponent_id is not None:
+        if meeting_id not in interclub_points["details"]:
+            interclub_points["details"][meeting_id] = dict(participation=0, victory=0)
+        if match["match type"] == "single" and match["winner"] == 1:
+            if "player 2 id" in match:
+                opponent_id = match["player 2 id"]
                 opponent = db.players.find_one({"_id": opponent_id})
                 try:
                     points_won = SINGLE_RANKING_POINTS[
                         opponent["classement_tennis"]["2019"]["single"]
                     ]
-                    interclub_points["details"]["victories"].append(
-                        {
-                            "tournament type": "interclub",
-                            "match type": "single",
-                            "match id": match["_id"],
-                            "victory_points": points_won,
-                        }
-                    )
+                    interclub_points["details"][meeting_id]["victory"] += points_won
                 except KeyError:
                     logging.error(
                         "Unknown ranking {} of player {} ({})".format(
-                            opponent["details.single ranking"],
+                            opponent["classement_tennis"]["2019"]["single"],
                             opponent["name"],
                             opponent_id,
                         )
@@ -52,40 +56,108 @@ def compute_interclub_points(db, player, year):
                 logging.warning(
                     "Player {} ({}) had no opponent for the match {} "
                     "during the interclubs meeting {}".format(
-                        player["name"],
-                        player["_id"],
-                        match["_id"],
-                        meeting_id,
+                        player["name"], player["_id"], match["_id"], meeting_id
                     )
                 )
-        if meeting_id not in interclub_matches["details"]["participations"]:
-            meeting_matches = db.interclub_matches.find(
-                {
-                    "interclub meeting id": meeting_id,
-                    "opponent team": match["opponent team"]
-                }
-            )
-            team_players = set()
-            for meeting_match in meeting_matches:
-                team_players.add(meeting_match["player 1 id"])
-                if "player 1b id" in meeting_match:
-                    team_players.add(meeting_match["player 1b id"])
-                players_count = len(team_players)
-                try:
-                    interclub_points["details"]["participations"][meeting_id] = SINGLE_RANKING_POINTS[player_ranking] * players_count
-                except KeyError:
-                    logging.error(
-                        "Unknown ranking {} of player {} ({})".format(
-                            player_ranking,
-                            player["name"],
-                            player["_id"],
-                        )
-                    )
+        interclub_points["details"][meeting_id]["participation"] += player_points
+    for meeting_id in interclub_points["details"]:
+        interclub_points["details"][meeting_id]["total"] = (
+            interclub_points["details"][meeting_id]["victory"]
+            + interclub_points["details"][meeting_id]["participation"]
+        )
+    ordered_totals = sorted(
+        [meeting["total"] for meeting in interclub_points["details"].values()],
+        reverse=True,
+    )
+    interclub_points["total"] = sum(ordered_totals[:5])
+    return interclub_points
 
 
 def compute_player_points(db, player, year):
-    points = {"summary": {}, "details": {}}
+    points = {
+        "summary": None,
+        "details": {
+            "interclubs": compute_interclub_points(db, player, year),
+            "tournaments": compute_tournament_points(db, player, year),
+        },
+    }
+    points["summary"] = {
+        "interclubs": points["details"]["interclubs"]["total"],
+        "total": points["details"]["interclubs"]["total"],
+    }
     return points
+
+
+def get_draw_details(db, player_id, category_id):
+    category_details = dict(victory=0, participation=0, matches=list())
+    rounds = db.aft_tournament_draws.aggregate(
+        [
+            {"$match": {"category id": category_id}},
+            {"$group": {"_id": "$draw type", "max round": {"$max": "$round"}}},
+        ]
+    )
+    draw_rounds = {draw_round["_id"]: draw_round["max round"] for draw_round in rounds}
+    reverse_round = max_reverse_round = sum(draw_rounds.values())
+    reverse_rounds = dict()
+    for draw_type in [
+        round_type for round_type in "EPQF" if round_type in draw_rounds.keys()
+    ]:
+        reverse_rounds[draw_type] = dict()
+        for round_index in range(1, draw_rounds[draw_type] + 1):
+            reverse_rounds[draw_type][round_index] = reverse_round
+            reverse_round -= 1
+    for draw_type in [
+        round_type for round_type in "EPQF" if round_type in draw_rounds.keys()
+    ]:
+        category_matches = db.aft_tournament_draws.find(
+            {
+                "$or": [{"player 1 id": player_id}, {"player 2 id": player_id}],
+                "category id": category_id,
+                "draw type": draw_type,
+            }
+        )
+        category_matches.sort({"round": 1})
+        for match in category_matches:
+            match_details = {
+                "_id": match["_id"],
+                "round": reverse_rounds[draw_type][match["round"]],
+            }
+            if player_id == match["player 1 id"]:
+                match_details.update({
+                    "victory": match["winner"] == 1,
+                })
+                opponent = db.players.find_one({"_id": match["player 2 id"]})
+            else:
+                match_details.update({
+                    "victory": match["winner"] == 2,
+                })
+                opponent = db.players.find_one({"_id": match["player 1 id"]})
+            if "classement_tennis" in opponent:
+                opponent_ranking = opponent["classement_tennnis"]["2019"]["single"]
+            elif "single ranking" in opponent["details"]:
+                opponent_ranking = opponent["details"]["single ranking"]
+            else:
+                opponent_ranking = opponent["single_ranking"]
+            match_details.update({
+                "opponent id": opponent["_id"],
+                "opponent points": SINGLE_RANKING_POINTS[opponent_ranking],
+            })
+            category_details["matches"].append(match_details)
+    return category_details
+
+
+def compute_tournament_points(db, player, year):
+    player_id = player["_id"]
+    tournament_points = dict(total=0, details=dict())
+    categories = db.aft_tournament_draws.distinct(
+        "category id",
+        filter={
+            "$or": [{"player 1 id": player_id}, {"player 2 id": player_id}],
+            "category name": re.compile("^S[DM].*"),
+        },
+    )
+    for category_id in categories:
+        category_details = get_draw_details(db, player_id, category_id)
 
 
 def compute_and_save_player_points(db, player, year, index, count):
@@ -101,8 +173,8 @@ def compute_and_save_player_points(db, player, year, index, count):
         db.players.find_one_and_update(
             filter={"_id": player["_id"]},
             update={
-                "$currentDate": {"ranking.previsions.last_updated": True},
-                "$set": {"ranking.previsions.{}.single".format(year): points},
+                "$currentDate": {"ranking.points.last_updated": True},
+                "$set": {"ranking.points.{}.single".format(year): points},
             },
             upsert=True,
         )
