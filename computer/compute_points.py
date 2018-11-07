@@ -89,7 +89,7 @@ def compute_player_points(db, player, year):
 
 
 def get_draw_details(db, player_id, category_id):
-    category_details = dict(victory=0, participation=0, matches=list())
+    category_details = dict(victory=0, participation=0, stage=0, matches=list())
     rounds = db.aft_tournament_draws.aggregate(
         [
             {"$match": {"category id": category_id}},
@@ -116,34 +116,60 @@ def get_draw_details(db, player_id, category_id):
                 "draw type": draw_type,
             }
         )
-        category_matches.sort({"round": 1})
+        category_matches.sort([("round", pymongo.ASCENDING), ])
         for match in category_matches:
             match_details = {
                 "_id": match["_id"],
                 "round": reverse_rounds[draw_type][match["round"]],
+                "category id": match["category id"],
+                "category name": match["category name"],
             }
             if player_id == match["player 1 id"]:
                 match_details.update({
                     "victory": match["winner"] == 1,
                 })
-                opponent = db.players.find_one({"_id": match["player 2 id"]})
+                opponent_id = match["player 2 id"].strip()
+                opponent_name = match["player 2 name"].strip()
             else:
                 match_details.update({
                     "victory": match["winner"] == 2,
                 })
-                opponent = db.players.find_one({"_id": match["player 1 id"]})
-            if "classement_tennis" in opponent:
-                opponent_ranking = opponent["classement_tennnis"]["2019"]["single"]
-            elif "single ranking" in opponent["details"]:
-                opponent_ranking = opponent["details"]["single ranking"]
+                opponent_id = match["player 1 id"]
+                opponent_name = match["player 1 name"]
+            if opponent_name == "Bye":
+                opponent_ranking = None
             else:
-                opponent_ranking = opponent["single_ranking"]
+                opponent = db.players.find_one({"_id": opponent_id})
+                if opponent is None:
+                    opponent_ranking = None
+                    logging.warning("Could not find the opponent {} ({}) in the match {}"
+                                    "".format(opponent_name, opponent_id, match["_id"]))
+                elif "classement_tennis" in opponent:
+                    opponent_ranking = opponent["classement_tennis"]["2019"]["single"]
+                elif "single ranking" in opponent["details"]:
+                    opponent_ranking = opponent["details"]["single ranking"]
+                else:
+                    opponent_ranking = opponent["single_ranking"]
             match_details.update({
-                "opponent id": opponent["_id"],
-                "opponent points": SINGLE_RANKING_POINTS[opponent_ranking],
+                "opponent id": opponent_id,
+                "opponent points": SINGLE_RANKING_POINTS[opponent_ranking] if opponent_ranking is not None else 0,
             })
             category_details["matches"].append(match_details)
+        matches = category_details["matches"]
+        if len(matches) == 0:
+            return category_details
+        if len(matches) == 1 and matches[0]["round"] == max_reverse_round:
+            return category_details
+        for match in category_details["matches"]:
+            category_details["participation"] += 2
+            category_details["victory"] += match["opponent points"]
+            category_details["stage"] = get_stage_for_round(match["round"], match["category name"])
+
     return category_details
+
+
+def get_stage_for_round(round, category_name):
+    return 0
 
 
 def compute_tournament_points(db, player, year):
