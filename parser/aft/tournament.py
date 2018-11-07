@@ -275,6 +275,12 @@ def parse_tournament_category_draws(tournament_id, category):
                 match_score = [
                     (int(set_score[0]), int(set_score[1])) for set_score in match_score if set_score != ("", "")
                 ]
+                if player_1["statusWin"] == "V":
+                    winner = 1
+                elif player_2["statusWin"] == "V":
+                    winner = 2
+                else:
+                    winner = None
                 match_description = {
                     "_id": player_2["matchId"],
                     "tournament id": tournament_id,
@@ -288,7 +294,7 @@ def parse_tournament_category_draws(tournament_id, category):
                     "player 1b id": player_1["idB"],
                     "player 1b name": player_1["nameB"],
                     "player 1 seed": player_1["seed"],
-                    "player 1 won": player_1["statusWin"] == "V",
+                    "player 1 win status": player_1["statusWin"],
                     "player 1 has stats": player_1["hasStats"],
                     "player 1 result type": player_1["resultType"],
                     "player 1 draw position": player_1["drawPosition"],
@@ -297,13 +303,11 @@ def parse_tournament_category_draws(tournament_id, category):
                     "player 2b id": player_2["idB"],
                     "player 2b name": player_2["nameB"],
                     "player 2 seed": player_2["seed"],
-                    "player 2 won": player_2["statusWin"] == "V",
+                    "player 2 win status": player_2["statusWin"],
                     "player 2 has stats": player_2["hasStats"],
                     "player 2 result type": player_2["resultType"],
                     "player 2 draw position": player_2["drawPosition"],
-                    "winner": 1 if player_1["statusWin"] == "V" else 2,
-                    "player 1 win status": player_1["statusWin"],
-                    "player 2 win status": player_2["statusWin"],
+                    "winner": winner,
                     "score": match_score,
                 }
                 yield match_description
