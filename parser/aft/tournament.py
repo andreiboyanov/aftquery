@@ -302,6 +302,8 @@ def parse_tournament_category_draws(tournament_id, category):
                     "player 2 result type": player_2["resultType"],
                     "player 2 draw position": player_2["drawPosition"],
                     "winner": 1 if player_1["statusWin"] == "V" else 2,
+                    "player 1 win status": player_1["statusWin"],
+                    "player 2 win status": player_2["statusWin"],
                     "score": match_score,
                 }
                 yield match_description
