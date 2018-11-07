@@ -273,7 +273,7 @@ def parse_tournament_category_draws(tournament_id, category):
                     zip(player_1["score"].split("-"), player_2["score"].split("-"))
                 )
                 match_score = [
-                    set_score for set_score in match_score if set_score != ("", "")
+                    (int(set_score[0]), int(set_score[1])) for set_score in match_score if set_score != ("", "")
                 ]
                 match_description = {
                     "_id": player_2["matchId"],
@@ -301,7 +301,7 @@ def parse_tournament_category_draws(tournament_id, category):
                     "player 2 has stats": player_2["hasStats"],
                     "player 2 result type": player_2["resultType"],
                     "player 2 draw position": player_2["drawPosition"],
-                    "winner": 1 if player_1["statusWin"] == "v" else 2,
+                    "winner": 1 if player_1["statusWin"] == "V" else 2,
                     "score": match_score,
                 }
                 yield match_description
