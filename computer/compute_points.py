@@ -96,6 +96,13 @@ def get_draw_details(db, player_id, category_id):
             {"$group": {"_id": "$draw type", "max round": {"$max": "$round"}}},
         ]
     )
+    category_players_1 = db.aft_tournament_draws.distinct(
+        "player 1 id", {"category id": category_id, "player 1 id": {"$ne": ""}}
+    )
+    category_players_2 = db.aft_tournament_draws.distinct(
+        "player 2 id", {"category id": category_id, "player 2 id": {"$ne": ""}}
+    )
+    category_players_count = len(set(category_players_1 + category_players_2))
     draw_rounds = {draw_round["_id"]: draw_round["max round"] for draw_round in rounds}
     reverse_round = max_reverse_round = sum(draw_rounds.values())
     reverse_rounds = dict()
@@ -114,9 +121,10 @@ def get_draw_details(db, player_id, category_id):
                 "$or": [{"player 1 id": player_id}, {"player 2 id": player_id}],
                 "category id": category_id,
                 "draw type": draw_type,
+                "players count": category_players_count,
             }
         )
-        category_matches.sort([("round", pymongo.ASCENDING), ])
+        category_matches.sort([("round", pymongo.ASCENDING)])
         for match in category_matches:
             match_details = {
                 "_id": match["_id"],
@@ -125,15 +133,11 @@ def get_draw_details(db, player_id, category_id):
                 "category name": match["category name"],
             }
             if player_id == match["player 1 id"]:
-                match_details.update({
-                    "victory": match["winner"] == 1,
-                })
+                match_details.update({"victory": match["winner"] == 1})
                 opponent_id = match["player 2 id"].strip()
                 opponent_name = match["player 2 name"].strip()
             else:
-                match_details.update({
-                    "victory": match["winner"] == 2,
-                })
+                match_details.update({"victory": match["winner"] == 2})
                 opponent_id = match["player 1 id"]
                 opponent_name = match["player 1 name"]
             if opponent_name == "Bye":
@@ -142,18 +146,24 @@ def get_draw_details(db, player_id, category_id):
                 opponent = db.players.find_one({"_id": opponent_id})
                 if opponent is None:
                     opponent_ranking = None
-                    logging.warning("Could not find the opponent {} ({}) in the match {}"
-                                    "".format(opponent_name, opponent_id, match["_id"]))
+                    logging.warning(
+                        "Could not find the opponent {} ({}) in the match {}"
+                        "".format(opponent_name, opponent_id, match["_id"])
+                    )
                 elif "classement_tennis" in opponent:
                     opponent_ranking = opponent["classement_tennis"]["2019"]["single"]
                 elif "single ranking" in opponent["details"]:
                     opponent_ranking = opponent["details"]["single ranking"]
                 else:
                     opponent_ranking = opponent["single_ranking"]
-            match_details.update({
-                "opponent id": opponent_id,
-                "opponent points": SINGLE_RANKING_POINTS[opponent_ranking] if opponent_ranking is not None else 0,
-            })
+            match_details.update(
+                {
+                    "opponent id": opponent_id,
+                    "opponent points": SINGLE_RANKING_POINTS[opponent_ranking]
+                    if opponent_ranking is not None
+                    else 0,
+                }
+            )
             category_details["matches"].append(match_details)
         matches = category_details["matches"]
         if len(matches) == 0:
@@ -163,7 +173,9 @@ def get_draw_details(db, player_id, category_id):
         for match in category_details["matches"]:
             category_details["participation"] += 2
             category_details["victory"] += match["opponent points"]
-            category_details["stage"] = get_stage_for_round(match["round"], match["category name"])
+            category_details["stage"] = get_stage_for_round(
+                match["round"], match["category name"]
+            )
 
     return category_details
 
