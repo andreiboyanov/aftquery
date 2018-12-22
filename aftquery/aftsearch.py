@@ -7,9 +7,9 @@ import argparse
 from pprint import pprint
 from bs4 import BeautifulSoup as bs4
 
-from aftquery.parser.aft import clubs as aft_clubs
-from aftquery.parser.aft import players as aft_players
-from aftquery.parser.aft.common import _get_name_and_id
+from .parser.aft import clubs as aft_clubs
+from .parser.aft import players as aft_players
+from .parser.aft.common import _get_name_and_id
 
 players = dict()
 clubs = dict()
@@ -64,7 +64,7 @@ def search_clubs(region=1):
     pprint(clubs)
 
 
-def main(argv):
+def main():
     parser = argparse.ArgumentParser(description="Search for francophone tennis players in Belgium")
     parser.add_argument("--region", default="1", help="Search in this region (comma-separated list of integer ids)")
     parser.add_argument("--players", action="store_true", help="Search for players")
@@ -75,7 +75,7 @@ def main(argv):
         help="Get player details by ID. Multiple instances of this argument are accepted.")
     parser.add_argument("--club-id", default="")
     parser.add_argument('--show-matches', action='store_true', help="Show player's matches")
-    arguments = parser.parse_args(argv)
+    arguments = parser.parse_args()
     if arguments.player_id:
         for player_ids in arguments.player_id:
             for player_id in player_ids:
@@ -94,4 +94,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
