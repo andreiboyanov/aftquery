@@ -1,7 +1,6 @@
 import urllib.parse
 import urllib.request
 from bs4 import BeautifulSoup as bs4
-
 from .common import _get_name_and_id
 
 
@@ -44,4 +43,3 @@ def search_clubs(region=1):
     html = urllib.request.urlopen(url, webdata.encode("utf-8")).read()
     for club in parse_clubs(html):
         yield club
-

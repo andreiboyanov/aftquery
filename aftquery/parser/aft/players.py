@@ -5,7 +5,7 @@ import os.path
 import urllib.parse
 from bs4 import BeautifulSoup as bs4
 
-from aftquery.parser.aft.common import _get_name_and_id
+from .common import _get_name_and_id
 
 PLAYER_INFO_LABELS = dict(
     {
