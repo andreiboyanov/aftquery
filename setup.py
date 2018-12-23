@@ -18,7 +18,10 @@ setup(
     author_email=EMAIL,
     url=URL,
     install_requires=["pymongo", "Flask-PyMongo", "beautifulsoup4", "requests"],
-    packages=find_packages(exclude=("tests",)),
+    py_modules=['aftquery'],
+    entry_points={
+        'console_scripts': ['aftquery=aftquery.aftsearch:main']
+    },
     python_requires=">=3.0",
     include_package_data=True,
     license="GPL",
