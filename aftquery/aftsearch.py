@@ -7,9 +7,9 @@ import argparse
 from pprint import pprint
 from bs4 import BeautifulSoup as bs4
 
-from .parser.aft import clubs as aft_clubs
-from .parser.aft import players as aft_players
-from .parser.aft.common import _get_name_and_id
+from parser.aft import clubs as aft_clubs
+from parser.aft import players as aft_players
+from parser.aft.common import _get_name_and_id
 
 players = dict()
 clubs = dict()
