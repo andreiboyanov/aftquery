@@ -196,6 +196,7 @@ def compute_tournament_points(db, player, year):
     )
     for category_id in categories:
         category_details = get_draw_details(db, player_id, category_id)
+    return tournament_points
 
 
 def compute_and_save_player_points(db, player, year, index, count):

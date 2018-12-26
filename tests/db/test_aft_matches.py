@@ -1,11 +1,14 @@
+CURRENT_YEAR = "2019"
+
+
 def test_player_matches_compare_to_aft_matches(sousmarin_db):
     tested_player_id = "1095130"
     player = sousmarin_db.players.find_one(
-        {"_id": tested_player_id}, {"matches.2018.single": True}
+        {"_id": tested_player_id}, {"matches.{}.single".format(CURRENT_YEAR): True}
     )
     player_matches = [
         match
-        for match in player["matches"]["2018"]["single"]
+        for match in player["matches"][CURRENT_YEAR]["single"]
         if match["tournament type"] == "tournament" and match["text score"] is not None
     ]
     aft_matches_cursor = sousmarin_db.aft_matches.find(
