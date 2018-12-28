@@ -11,4 +11,4 @@ install:
   - pip install -r requirements.txt
   - pip install -r requirements_dev.txt
 script:
-  - pytest tests/unit
+  - pytest tests/integration
