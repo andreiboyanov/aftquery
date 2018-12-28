@@ -1,0 +1,2 @@
+This directory is needed by the scripts to store the logs of their execution.
+All scripts that are writing logs are creating a log file in a sub-folder `logs` in the current folder.

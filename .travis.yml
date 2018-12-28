@@ -1,0 +1,14 @@
+language: python
+python:
+  - "3.4"
+  - "3.5"
+  - "3.6"
+  - "3.7-dev"
+services:
+
+  - mongodb
+install:
+  - pip install -r requirements.txt
+  - pip install -r requirements_dev.txt
+script:
+  - pytest tests/integration
