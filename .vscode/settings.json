@@ -1,3 +1,7 @@
 {
-    "python.pythonPath": "/home/andrei/envs/aftquery/bin/python"
+    "python.pythonPath": "/home/andrei/envs/aft/bin/python",
+    "cSpell.words": [
+        "jsonify",
+        "mongodb"
+    ]
 }
