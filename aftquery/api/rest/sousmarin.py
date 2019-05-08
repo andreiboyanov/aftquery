@@ -1,12 +1,19 @@
 from flask import Flask, jsonify
 from flask_pymongo import PyMongo
-from flask_restplus import Resource, Api
+from flask_restplus import Resource, Api, Namespace
 
 
 app = Flask(__name__)
 app.config["MONGO_URI"] = "mongodb://localhost:27017/aft_collector"
 mongo = PyMongo(app)
-api = Api(app)
+api = Api(
+    app,
+    version="0.1",
+    title="Sousmarin",
+    description="Information system about the tennis in Belgium",
+    default="sousmarin",
+    default_label="Sousmarin's main collections"
+)
 
 
 @api.route("/player/<string:player_id>")
