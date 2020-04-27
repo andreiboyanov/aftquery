@@ -7,4 +7,5 @@ install:
   - pip install poetry
   - poetry install
 script:
+  - poetry install
   - poetry run pytest tests/integration
