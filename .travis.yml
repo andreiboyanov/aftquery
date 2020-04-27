@@ -1,14 +1,10 @@
 language: python
 python:
-  - "3.4"
-  - "3.5"
-  - "3.6"
-  - "3.7-dev"
+  - "3.8"
 services:
-
   - mongodb
 install:
-  - pip install -r requirements.txt
-  - pip install -r requirements_dev.txt
+  - pip install poetry
+  - poetry install
 script:
-  - pytest tests/integration
+  - poetry run pytest tests/integration
