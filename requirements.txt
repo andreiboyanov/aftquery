@@ -1,6 +1,0 @@
-flask
-flask-restplus
-pymongo
-Flask-PyMongo
-bs4
-requests
