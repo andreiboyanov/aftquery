@@ -12,6 +12,7 @@ pymongo = "^3.10.1"
 Flask-PyMongo = "^2.3.0"
 bs4 = "^0.0.1"
 requests = "^2.23.0"
+werkzeug = "0.16.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4.1"
