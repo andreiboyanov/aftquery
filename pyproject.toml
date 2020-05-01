@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "tennis-server"
+name = "aftquery"
 version = "0.1.0"
 description = "Tennis services"
 authors = ["Andrei Boyanov <andrei.boyanov@gmail.com>"]
