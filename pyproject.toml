@@ -6,7 +6,7 @@ authors = ["Andrei Boyanov <andrei.boyanov@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-flask = "^1.1.2"
+flask = "^2.2.5"
 flask-restplus = "^0.13.0"
 pymongo = "^3.10.1"
 Flask-PyMongo = "^2.3.0"
